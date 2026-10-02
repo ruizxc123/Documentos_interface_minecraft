@@ -1,71 +1,69 @@
 # Livro — caderno digital de documentos
 
-Aplicação web estática para escrever e organizar ideias em uma interface de livro. O projeto foi pensado para ser simples de executar, sem backend, dependências de produção ou conta de usuário.
+Aplicação web estática para escrever e organizar ideias em uma interface de livro. Funciona sem backend, conta de usuário ou dependências de produção.
 
 ## Recursos
 
 - Criar, abrir, renomear e excluir documentos.
-- Editor paginado com quebra visual responsiva, zoom, desfazer e refazer.
-- Salvamento automático e cópia local de recuperação.
-- Persistência prioritária no IndexedDB, com fallback para `localStorage`.
+- Editor paginado e responsivo com zoom, desfazer e refazer.
+- Salvamento automático e recuperação local.
+- Persistência no IndexedDB, com fallback para `localStorage`.
 - Interface em português, navegação por teclado e avisos acessíveis.
-- Colagem e arraste de conteúdo apenas como texto simples.
+- Colagem e arraste de conteúdo aceitos somente como texto simples.
 
 ## Requisitos
 
 - Navegador moderno com suporte a módulos JavaScript, IndexedDB e armazenamento local.
-- Python 3 para servir os arquivos localmente (alternativamente, qualquer servidor HTTP estático).
-- Node.js 22 ou superior para executar os testes e verificações.
+- Python 3 ou outro servidor HTTP estático para desenvolvimento local.
+- Node.js 22+ para executar os testes e verificações.
 
-## Executar localmente
+## Início rápido
 
-Na raiz do repositório, inicie um servidor HTTP:
+Na raiz do repositório, execute:
 
 ```bash
 python3 -m http.server 3000
 ```
 
-Acesse <http://localhost:3000>. Não abra `index.html` diretamente como arquivo: os módulos ES precisam ser servidos por HTTP.
+Acesse <http://localhost:3000>. O projeto precisa ser servido por HTTP; abrir `index.html` como arquivo não carrega os módulos ES corretamente.
 
-## Testes e verificações
+## Testes
 
 ```bash
 npm test
 npm run check
 ```
 
-Os testes usam o executor nativo do Node.js e não exigem bibliotecas de terceiros. A integração contínua executa os mesmos comandos em pushes e pull requests.
+Os testes usam o executor nativo do Node.js, sem bibliotecas de terceiros. O GitHub Actions executa as mesmas verificações em pushes e pull requests para `main`.
 
-## Estrutura do projeto
+## Estrutura
 
 ```text
 .
-├── index.html                 # Entrada da aplicação e política CSP
-├── src/
-│   ├── main.js                # Inicialização, rotas e ações da biblioteca
-│   ├── library.js             # Estante e cartões de documentos
-│   ├── book-editor.js         # Edição, paginação visual e salvamento
-│   ├── pagination.js          # Quebra de texto em páginas
-│   ├── storage.js             # IndexedDB, fallback e recuperação
-│   └── styles.css             # Estilos e comportamento responsivo
-├── tests/                     # Testes de paginação e persistência
-├── fonts/                     # Fonte e licença correspondentes
-├── SECURITY.md                # Modelo de segurança e reporte de vulnerabilidades
-└── THIRD_PARTY_NOTICES.md     # Atribuições de componentes de terceiros
+├── .github/workflows/       # Automação de qualidade
+├── assets/
+│   ├── favicon.svg          # Ícone local da aplicação
+│   └── fonts/               # Fonte local e licença
+├── docs/
+│   └── architecture.md      # Arquitetura, escopo e decisões técnicas
+├── src/                     # Código da aplicação
+├── tests/                   # Testes de paginação e persistência
+├── index.html               # Ponto de entrada
+├── package.json             # Scripts e requisitos do Node.js
+├── SECURITY.md              # Modelo de segurança e reporte
+└── THIRD_PARTY_NOTICES.md   # Atribuições de terceiros
 ```
 
 ## Privacidade e armazenamento
 
-Os documentos permanecem no armazenamento do navegador usado para acessar a aplicação. Eles **não são enviados a um servidor**, sincronizados entre dispositivos nem criptografados pela aplicação. Limpar os dados do site no navegador pode apagá-los permanentemente; mantenha cópias externas de qualquer conteúdo importante. A aplicação não implementa exportação ou backup remoto.
+Os documentos ficam no armazenamento do navegador usado para acessar a aplicação. O código não envia os documentos a um backend, não sincroniza entre dispositivos e não criptografa os dados. Limpar os dados do site pode apagá-los permanentemente; mantenha cópias externas do conteúdo importante. Não há exportação nem backup remoto.
 
 ## Segurança
 
-A aplicação aplica uma política de segurança de conteúdo, renderiza títulos e prévias escapados e aceita conteúdo do editor como texto simples. Essas medidas reduzem riscos no cliente, mas não substituem HTTPS e cabeçalhos de segurança configurados no servidor de hospedagem. Consulte [SECURITY.md](SECURITY.md) antes de publicar ou relatar uma vulnerabilidade.
+A aplicação inclui uma política de segurança de conteúdo, valida os registros persistidos e renderiza o conteúdo do usuário como texto. Essas medidas reduzem riscos no cliente, mas não substituem HTTPS e cabeçalhos de segurança na hospedagem. Consulte [SECURITY.md](SECURITY.md) e [a documentação de arquitetura](docs/architecture.md).
 
-## Fonte e atribuições
+## Fonte e licença
 
-A fonte Minecraft-Font incluída no projeto é de Idrees Hassan, sob a SIL Open Font License 1.1. Consulte [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) e `fonts/LICENSE-Minecraft.txt`. O projeto é independente e não afiliado à Mojang ou à Minecraft.
+A fonte incluída é o projeto Minecraft-Font, de Idrees Hassan, distribuído sob SIL Open Font License 1.1. A atribuição e a licença estão em [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) e `assets/fonts/LICENSE-Minecraft.txt`. O projeto é independente e não afiliado à Mojang ou à Minecraft.
 
-## Licença do projeto
-
-Este repositório não declara uma licença para o código da aplicação. Até que uma licença seja adicionada pelo titular, não presuma que o código esteja liberado para reutilização, distribuição ou modificação. A licença da fonte de terceiros permanece conforme os arquivos de atribuição e licença indicados acima.
+O repositório não declara uma licença para o código da aplicação. Até que o titular adicione uma, não presuma que o código esteja liberado para reutilização, distribuição ou modificação.
