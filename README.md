@@ -12,16 +12,16 @@ A proposta é trazer a experiência de um editor de documentos para dentro de um
 
 ## ✨ Recursos
 
-- 📚 Criar, abrir, renomear e excluir documentos.
-- ✏️ Editor paginado e responsivo.
-- 🔍 Controle de zoom.
-- ↩️ Desfazer e refazer alterações.
-- 💾 Salvamento automático.
-- 🔄 Recuperação local dos documentos.
-- 🗃️ Persistência usando `IndexedDB`, com fallback para `localStorage`.
-- ⌨️ Navegação por teclado.
-- ♿ Avisos e elementos de interface acessíveis.
-- 📋 Colagem e arraste de conteúdo como texto simples.
+-  Criar, abrir, renomear e excluir documentos.
+-  Editor paginado e responsivo.
+-  Controle de zoom.
+-  Desfazer e refazer alterações.
+-  Salvamento automático.
+-  Recuperação local dos documentos.
+-  Persistência usando `IndexedDB`, com fallback para `localStorage`.
+-  Navegação por teclado.
+-  Avisos e elementos de interface acessíveis.
+-  Colagem e arraste de conteúdo como texto simples.
 
 A aplicação funciona sem backend, contas de usuário ou dependências de produção.
 
