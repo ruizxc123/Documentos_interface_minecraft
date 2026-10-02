@@ -1,33 +1,76 @@
-# Livro — caderno digital de documentos
+# 📖 Livro — Caderno Digital de Documentos
 
-A ideia é transformar a experiência de um documento do Google em uma interface inspirada nos livros do Minecraft. Em vez de escrever em um editor tradicional, você escreve diretamente nas páginas do livro, podendo criar, salvar e organizar seus documentos como livros digitais.Aplicação web estática para escrever e organizar ideias em uma interface de livro. Funciona sem backend, conta de usuário ou dependências de produção.
+Uma aplicação web inspirada nos livros do Minecraft para criar, escrever, salvar e organizar documentos.
 
-## Recursos
+A proposta é trazer a experiência de um editor de documentos para dentro de um livro digital. Em vez de usar um editor tradicional, você escreve diretamente nas páginas, podendo criar diferentes documentos e acessá-los posteriormente.
 
-- Criar, abrir, renomear e excluir documentos.
-- Editor paginado e responsivo com zoom, desfazer e refazer.
-- Salvamento automático e recuperação local.
-- Persistência no IndexedDB, com fallback para `localStorage`.
-- Interface em português, navegação por teclado e avisos acessíveis.
-- Colagem e arraste de conteúdo aceitos somente como texto simples.
+🌐 **Acesse o projeto:**
 
-## Requisitos
+[**Documentos Minecraft**](https://ruizxc123.github.io/Documentos_minecraf/)
 
-- Navegador moderno com suporte a módulos JavaScript, IndexedDB e armazenamento local.
-- Python 3 ou outro servidor HTTP estático para desenvolvimento local.
-- Node.js 22.13+ para executar testes e verificações.
+---
 
-## Início rápido
+## ✨ Recursos
 
-Na raiz do repositório, execute:
+- 📚 Criar, abrir, renomear e excluir documentos.
+- ✏️ Editor paginado e responsivo.
+- 🔍 Controle de zoom.
+- ↩️ Desfazer e refazer alterações.
+- 💾 Salvamento automático.
+- 🔄 Recuperação local dos documentos.
+- 🗃️ Persistência usando `IndexedDB`, com fallback para `localStorage`.
+- ⌨️ Navegação por teclado.
+- ♿ Avisos e elementos de interface acessíveis.
+- 📋 Colagem e arraste de conteúdo como texto simples.
+
+A aplicação funciona sem backend, contas de usuário ou dependências de produção.
+
+---
+
+## 🛠️ Tecnologias
+
+- HTML
+- CSS
+- JavaScript
+- IndexedDB
+- LocalStorage
+- Node.js
+- ESLint
+- GitHub Actions
+
+---
+
+## 📋 Requisitos
+
+Para executar o projeto localmente, você precisa de:
+
+- Um navegador moderno com suporte a módulos JavaScript, IndexedDB e armazenamento local.
+- Python 3 ou outro servidor HTTP estático.
+- Node.js 22.13 ou superior para executar os testes e verificações.
+
+---
+
+## 🚀 Início rápido
+
+Clone o repositório e, na raiz do projeto, execute:
 
 ```bash
 python3 -m http.server 3000
 ```
 
-Acesse <http://localhost:3000>. O projeto precisa ser servido por HTTP; abrir `index.html` como arquivo não carrega os módulos ES corretamente.
+Depois, abra:
 
-## Testes
+```text
+http://localhost:3000
+```
+
+O projeto precisa ser executado por HTTP. Abrir o `index.html` diretamente como arquivo pode impedir o carregamento correto dos módulos ES.
+
+---
+
+## 🧪 Testes
+
+Para instalar as dependências e executar as verificações:
 
 ```bash
 npm ci
@@ -36,38 +79,86 @@ npm run lint
 npm run check
 ```
 
-Os testes usam o executor nativo do Node.js. O ESLint é uma dependência apenas de desenvolvimento; a aplicação não precisa de bibliotecas de terceiros em produção. O GitHub Actions executa lint, testes e verificação sintática em pushes e pull requests para `main`.
+Os testes utilizam o executor nativo do Node.js.
 
-## Estrutura
+O ESLint é utilizado apenas durante o desenvolvimento. A aplicação não depende de bibliotecas de terceiros para funcionar em produção.
+
+O GitHub Actions executa automaticamente lint, testes e verificação sintática em pushes e pull requests para a branch `main`.
+
+---
+
+## 📁 Estrutura do projeto
 
 ```text
 .
 ├── .github/workflows/       # Automação de qualidade
 ├── assets/
-│   ├── favicon.svg          # Ícone local da aplicação
+│   ├── favicon.svg          # Ícone da aplicação
 │   └── fonts/               # Fonte local e licença
 ├── docs/
-│   └── architecture.md      # Arquitetura, escopo e decisões técnicas
-├── eslint.config.js          # Regras estáticas de JavaScript
+│   └── architecture.md      # Arquitetura e decisões técnicas
+├── eslint.config.js         # Regras de JavaScript
 ├── src/                     # Código da aplicação
 ├── tests/                   # Testes de paginação e persistência
 ├── index.html               # Ponto de entrada
 ├── package.json             # Scripts e requisitos do Node.js
-├── package-lock.json         # Dependências de desenvolvimento fixadas
-├── SECURITY.md              # Modelo de segurança e reporte
+├── package-lock.json        # Dependências de desenvolvimento
+├── SECURITY.md              # Segurança e reporte
 └── THIRD_PARTY_NOTICES.md   # Atribuições de terceiros
 ```
 
-## Privacidade e armazenamento
+---
 
-Os documentos ficam no armazenamento do navegador usado para acessar a aplicação. O código não envia os documentos a um backend, não sincroniza entre dispositivos e não criptografa os dados. Limpar os dados do site pode apagá-los permanentemente; mantenha cópias externas do conteúdo importante. Não há exportação nem backup remoto.
+## 🔒 Privacidade e armazenamento
 
-## Segurança
+Os documentos são armazenados localmente no navegador utilizado para acessar a aplicação.
 
-A aplicação inclui uma política de segurança de conteúdo, valida os registros persistidos e renderiza o conteúdo do usuário como texto. Essas medidas reduzem riscos no cliente, mas não substituem HTTPS e cabeçalhos de segurança na hospedagem. Consulte [SECURITY.md](SECURITY.md) e [a documentação de arquitetura](docs/architecture.md).
+O projeto não envia os documentos para um backend, não realiza sincronização entre dispositivos e não criptografa os dados.
 
-## Fonte e licença
+Por isso, limpar os dados do site pode apagar os documentos permanentemente. Para conteúdos importantes, mantenha cópias externas.
 
-A fonte incluída é o projeto Minecraft-Font, de Idrees Hassan, distribuído sob SIL Open Font License 1.1. A atribuição e a licença estão em [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) e `assets/fonts/LICENSE-Minecraft.txt`. O projeto é independente e não afiliado à Mojang ou à Minecraft.
+Atualmente, a aplicação não possui exportação ou backup remoto.
 
-O repositório não declara uma licença para o código da aplicação. Até que o titular adicione uma, não presuma que o código esteja liberado para reutilização, distribuição ou modificação.
+---
+
+## 🛡️ Segurança
+
+A aplicação possui medidas de segurança no lado do cliente, incluindo:
+
+- Política de Segurança de Conteúdo.
+- Validação dos registros persistidos.
+- Renderização do conteúdo do usuário como texto.
+
+Essas medidas ajudam a reduzir riscos no navegador, mas não substituem o uso de HTTPS e de cabeçalhos de segurança na hospedagem.
+
+Mais informações:
+
+- [SECURITY.md](SECURITY.md)
+- [Documentação da arquitetura](docs/architecture.md)
+
+---
+
+## 🎮 Fonte utilizada
+
+A fonte incluída no projeto é o **Minecraft-Font**, de Idrees Hassan, distribuído sob a **SIL Open Font License 1.1**.
+
+As informações de atribuição e licença estão disponíveis em:
+
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+- `assets/fonts/LICENSE-Minecraft.txt`
+
+O projeto é independente e não possui afiliação com a Mojang ou com o Minecraft.
+
+---
+
+## 📄 Licença
+
+O repositório não declara atualmente uma licença para o código da aplicação.
+
+Até que uma licença seja adicionada pelo titular, o código não deve ser presumido como liberado para reutilização, distribuição ou modificação.
+
+---
+
+## 📖 Sobre o projeto
+
+**Livro — Caderno Digital de Documentos** transforma a ideia tradicional de um editor de texto em uma experiência baseada em livros digitais, mantendo recursos de edição e armazenamento local dentro de uma interface inspirada nos livros do Minecraft.
