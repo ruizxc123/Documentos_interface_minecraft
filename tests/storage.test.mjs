@@ -28,6 +28,27 @@ test('mantém documentos independentes no fallback e a exclusão persiste mesmo 
   await deleteDocument(first.id);
   assert.equal(await getDocument(first.id), null);
   assert.deepEqual((await listDocuments()).map((item) => item.id), ['doc-2']);
+  assert.equal(localStorage.getItem('livro:deleted:doc-1'), '1', 'sem IndexedDB, o tombstone impede que uma cópia antiga reapareça');
+});
+
+test('mantém o tombstone quando a limpeza do fallback falha para que um documento não reapareça', async () => {
+  localStorage.clear();
+  const saved = record('doc-fallback', 'Rascunho', 'conteúdo local', '2026-10-01T20:00:00.000Z');
+  await saveDocument(saved);
+  const originalSetItem = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = (key, value) => {
+    if (key === 'livro:documents:v1') throw new Error('armazenamento cheio');
+    originalSetItem(key, value);
+  };
+
+  try {
+    await deleteDocument(saved.id);
+    assert.equal(localStorage.getItem('livro:deleted:doc-fallback'), '1');
+    assert.deepEqual(await listDocuments(), []);
+    assert.equal(await getDocument(saved.id), null);
+  } finally {
+    localStorage.setItem = originalSetItem;
+  }
 });
 
 test('usa a cópia de recuperação mais recente e a remove depois da gravação bem-sucedida', async () => {

@@ -37,3 +37,22 @@ test('mapeia um cursor para a página correta, inclusive após uma quebra de pá
   assert.equal(pageIndexAt(pages, pages[0].end), Math.min(1, pages.length - 1));
   assert.equal(pageIndexAt(pages, pages.at(-1).end), pages.length - 1);
 });
+
+test('mantém uma página editável para documento vazio e preserva quebras finais', () => {
+  const empty = paginateText('', layout);
+  assert.equal(empty.length, 1);
+  assert.deepEqual(empty[0], { start: 0, end: 0, text: '' });
+
+  const source = '\n\núltima linha\n';
+  const pages = paginateText(source, { ...layout, width: 90, height: 80 });
+  assert.equal(pages.map((page) => page.text).join(''), source);
+  assert.equal(pages.at(-1).end, source.length);
+});
+
+test('converte valores ausentes em texto vazio sem criar faixas inválidas', () => {
+  const pages = paginateText(null, layout);
+  assert.equal(pages.length, 1);
+  assert.equal(pages[0].text, '');
+  assert.equal(pages[0].start, 0);
+  assert.equal(pages[0].end, 0);
+});

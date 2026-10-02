@@ -109,7 +109,6 @@ export function paginateText(text, options = {}) {
     if (usedLines >= maxLines && line.start >= pageStart) {
       pages.push({ start: pageStart, end: line.start, text: content.slice(pageStart, line.start) });
       pageStart = line.start;
-      pageEnd = line.start;
       usedLines = 0;
     }
     pageEnd = line.end;

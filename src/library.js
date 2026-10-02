@@ -17,14 +17,18 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
 }
 
-function cardMarkup(document) {
-  const title = escapeHTML(document.title || 'Documento sem título');
-  const preview = escapeHTML((document.content || '').replace(/\s+/gu, ' ').trim().slice(0, 110));
-  const updated = escapeHTML(formatDate(document.updatedAt || document.createdAt));
-  const bookColors = ['fern', 'ink', 'clay', 'moss'];
-  const color = bookColors[parseInt(document.id.slice(-1), 16) % bookColors.length] || 'fern';
+function colorForId(id) {
+  const hash = [...String(id)].reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 0);
+  return ['fern', 'ink', 'clay', 'moss'][hash % 4];
+}
+
+function cardMarkup(documentRecord) {
+  const title = escapeHTML(documentRecord.title || 'Documento sem título');
+  const preview = escapeHTML((documentRecord.content || '').replace(/\s+/gu, ' ').trim().slice(0, 110));
+  const updated = escapeHTML(formatDate(documentRecord.updatedAt || documentRecord.createdAt));
+  const color = colorForId(documentRecord.id);
   return `
-    <article class="document-card" data-document-id="${escapeHTML(document.id)}">
+    <article class="document-card" data-document-id="${escapeHTML(documentRecord.id)}">
       <button class="document-cover cover-${color}" type="button" data-action="open" aria-label="Abrir ${title}">
         <span class="cover-corner" aria-hidden="true"></span>
         <span class="cover-bookmark" aria-hidden="true"></span>
@@ -35,8 +39,8 @@ function cardMarkup(document) {
       </button>
       <div class="card-info">
         <div class="card-heading">
-          <button class="card-title" type="button" data-action="open">${title}</button>
-          <div class="card-actions">
+          <h2 class="card-title-heading"><button class="card-title" type="button" data-action="open">${title}</button></h2>
+          <div class="card-actions" role="group" aria-label="Ações para ${title}">
             <button class="icon-button card-menu-button" type="button" data-action="rename" aria-label="Renomear ${title}" title="Renomear documento">✎</button>
             <button class="icon-button card-menu-button danger-icon" type="button" data-action="delete" aria-label="Excluir ${title}" title="Excluir documento">×</button>
           </div>
@@ -62,7 +66,7 @@ export function renderLibrary(root, documents, callbacks) {
       <main class="library-main">
         <section class="library-heading" aria-labelledby="library-title">
           <div class="heading-copy">
-            <p class="eyebrow">SUA ESTANTE DIGITAL <span class="eyebrow-line"></span></p>
+            <p class="eyebrow">SUA ESTANTE DIGITAL <span class="eyebrow-line" aria-hidden="true"></span></p>
             <h1 id="library-title">Meus <em>documentos</em></h1>
             <p class="library-description">Cada ideia merece um lugar para crescer.</p>
           </div>
@@ -70,12 +74,12 @@ export function renderLibrary(root, documents, callbacks) {
             <span class="button-plus" aria-hidden="true">+</span> Novo documento
           </button>
         </section>
-        <div class="library-meta" aria-live="polite">
+        <div class="library-meta" aria-live="polite" aria-atomic="true">
           <span>${count === 1 ? '1 livro na estante' : `${count} livros na estante`}</span>
-          <span class="meta-rule"></span>
+          <span class="meta-rule" aria-hidden="true"></span>
           <span class="meta-hint">seus rascunhos ficam neste navegador</span>
         </div>
-        ${count ? `<section class="document-shelf" aria-label="Documentos salvos">${cards}<div class="shelf-edge" aria-hidden="true"></div></section>` : `
+        ${count ? `<section class="document-shelf" aria-labelledby="document-shelf-title"><h2 id="document-shelf-title" class="sr-only">Documentos salvos</h2>${cards}<div class="shelf-edge" aria-hidden="true"></div></section>` : `
           <section class="empty-state" aria-labelledby="empty-title">
             <div class="empty-book" aria-hidden="true"><span></span><i></i></div>
             <div class="empty-copy">
@@ -90,7 +94,7 @@ export function renderLibrary(root, documents, callbacks) {
       </main>
     </div>`;
 
-  root.querySelector('[data-action="new"]')?.addEventListener('click', callbacks.onNew);
+  root.querySelectorAll('[data-action="new"]').forEach((button) => button.addEventListener('click', callbacks.onNew));
   root.querySelectorAll('.document-card').forEach((card) => {
     const id = card.dataset.documentId;
     card.querySelectorAll('[data-action="open"]').forEach((button) => button.addEventListener('click', () => callbacks.onOpen(id)));

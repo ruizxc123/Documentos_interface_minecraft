@@ -1,6 +1,6 @@
 import { mountBookEditor } from './book-editor.js';
 import { renderLibrary } from './library.js';
-import { deleteDocument, getDocument, listDocuments, saveDocument, storeRecovery } from './storage.js';
+import { clearRecovery, deleteDocument, getDocument, listDocuments, saveDocument, storeRecovery } from './storage.js';
 
 const app = document.getElementById('app');
 let controller = null;
@@ -17,7 +17,7 @@ function toast(message, kind = 'info') {
   if (!region) {
     region = document.createElement('div');
     region.className = 'toast-region';
-    region.setAttribute('aria-live', 'polite');
+    region.setAttribute('aria-hidden', 'true');
     document.body.append(region);
   }
   const item = document.createElement('div');
@@ -36,127 +36,201 @@ function documentIdFromHash() {
 }
 
 function showDialog({ title, message, inputValue, confirmLabel = 'Confirmar', danger = false }) {
+  const dialog = document.createElement('dialog');
+  dialog.className = 'modal-dialog';
+  if (typeof dialog.showModal !== 'function') {
+    const accepted = window.confirm(message);
+    if (!accepted) return Promise.resolve(null);
+    if (inputValue === undefined) return Promise.resolve(true);
+    const value = window.prompt(title, inputValue);
+    return Promise.resolve(typeof value === 'string' ? value.trim().slice(0, 120) : null);
+  }
+
+  dialog.setAttribute('aria-labelledby', 'dialog-title');
+  dialog.setAttribute('aria-describedby', 'dialog-message');
+  dialog.innerHTML = `
+    <form method="dialog">
+      <h2 id="dialog-title"></h2><p id="dialog-message"></p>
+      ${inputValue !== undefined ? '<label class="sr-only" for="dialog-input">Nome do documento</label><input id="dialog-input" class="dialog-input" type="text" maxlength="120" aria-describedby="dialog-message" />' : ''}
+      <div class="dialog-actions">
+        <button class="secondary-button" type="button" data-dialog-cancel>Cancelar</button>
+        <button class="${danger ? 'danger-button' : 'primary-button'}" type="submit" value="confirm"></button>
+      </div>
+    </form>`;
+  dialog.querySelector('#dialog-title').textContent = title;
+  dialog.querySelector('#dialog-message').textContent = message;
+  dialog.querySelector('[value="confirm"]').textContent = confirmLabel;
+  const input = dialog.querySelector('.dialog-input');
+  if (input) input.value = inputValue;
+
   return new Promise((resolve) => {
-    const dialog = document.createElement('dialog');
-    dialog.className = 'modal-dialog';
-    dialog.innerHTML = `
-      <form method="dialog">
-        <h2></h2><p></p>
-        ${inputValue !== undefined ? '<input class="dialog-input" type="text" maxlength="120" aria-label="Novo título" />' : ''}
-        <div class="dialog-actions">
-          <button class="secondary-button" value="cancel">Cancelar</button>
-          <button class="${danger ? 'danger-button' : 'primary-button'}" value="confirm"></button>
-        </div>
-      </form>`;
-    dialog.querySelector('h2').textContent = title;
-    dialog.querySelector('p').textContent = message;
-    dialog.querySelector('[value="confirm"]').textContent = confirmLabel;
-    const input = dialog.querySelector('.dialog-input');
-    if (input) input.value = inputValue;
-    document.body.append(dialog);
     dialog.addEventListener('close', () => {
       resolve(dialog.returnValue === 'confirm' ? (input ? input.value.trim() : true) : null);
       dialog.remove();
     }, { once: true });
-    dialog.addEventListener('cancel', () => resolve(null), { once: true });
-    if (typeof dialog.showModal === 'function') dialog.showModal();
-    else {
-      const accepted = window.confirm(message);
-      resolve(accepted ? (input ? window.prompt(title, inputValue) : true) : null);
-      dialog.remove();
-    }
+    dialog.querySelector('[data-dialog-cancel]').addEventListener('click', () => dialog.close('cancel'));
+    dialog.querySelector('form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      dialog.close('confirm');
+    });
+    document.body.append(dialog);
+    dialog.showModal();
     input?.focus();
     input?.select();
   });
 }
 
-async function enterDocument(id, updateHash = false) {
-  if (controller && currentId === id) return;
-  if (controller) {
-    const canClose = await controller.close();
-    if (!canClose) return;
-    controller.destroy();
-    controller = null;
-  }
-  if (updateHash) window.location.hash = `doc=${encodeURIComponent(id)}`;
-  const documentRecord = await getDocument(id);
-  if (!documentRecord) {
-    toast('Não encontramos esse documento neste navegador.', 'error');
-    window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    currentId = null;
-    await drawLibrary();
-    return;
-  }
-  currentId = id;
-  document.title = `${documentRecord.title || 'Documento sem título'} — Livro`;
-  controller = mountBookEditor(app, documentRecord, {
-    onBack: () => { window.location.hash = ''; },
-    onDocumentUpdated: (updated) => { if (updated.title) document.title = `${updated.title} — Livro`; },
-  });
+function focusLibraryHeading(generation) {
+  if (generation !== routeGeneration) return;
+  const heading = app.querySelector('#library-title');
+  if (!heading) return;
+  heading.tabIndex = -1;
+  heading.focus({ preventScroll: true });
 }
 
-async function drawLibrary() {
+function focusDocumentAction(id, action) {
+  const card = [...app.querySelectorAll('.document-card')].find((item) => item.dataset.documentId === id);
+  const preferred = card?.querySelector(`[data-action="${action}"]`);
+  const fallback = app.querySelector('.document-card [data-action="open"], .new-document-button');
+  (preferred || fallback)?.focus();
+}
+
+async function drawLibrary(generation = routeGeneration, { focus = false } = {}) {
   const documents = await listDocuments();
+  if (generation !== routeGeneration) return;
+
   renderLibrary(app, documents, {
     onNew: async () => {
+      if (generation !== routeGeneration) return;
       const now = new Date().toISOString();
       const id = globalThis.crypto?.randomUUID?.() || `doc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
       const documentRecord = { id, title: 'Documento sem título', content: '', createdAt: now, updatedAt: now };
       try {
         await saveDocument(documentRecord);
       } catch {
-        storeRecovery(documentRecord);
-        toast('O navegador não conseguiu salvar ainda. Uma cópia local foi preservada.', 'error');
+        const recovered = storeRecovery(documentRecord);
+        toast(
+          recovered
+            ? 'O navegador não conseguiu salvar ainda. Uma cópia local foi preservada.'
+            : 'Não foi possível salvar nem criar uma cópia local. Verifique o armazenamento do navegador e tente novamente.',
+          'error',
+        );
+        if (!recovered) return;
       }
-      window.location.hash = `doc=${encodeURIComponent(id)}`;
+      if (generation === routeGeneration) window.location.hash = `doc=${encodeURIComponent(id)}`;
     },
     onOpen: (id) => { window.location.hash = `doc=${encodeURIComponent(id)}`; },
     onRename: async (id) => {
       const item = await getDocument(id);
-      if (!item) return;
-      const title = await showDialog({ title: 'Renomear livro', message: 'Escolha um nome que ajude a encontrar esta ideia depois.', inputValue: item.title || 'Documento sem título', confirmLabel: 'Salvar nome' });
-      if (typeof title !== 'string' || !title) return;
+      if (!item || generation !== routeGeneration) return;
+      const title = await showDialog({
+        title: 'Renomear livro',
+        message: 'Escolha um nome que ajude a encontrar esta ideia depois.',
+        inputValue: item.title || 'Documento sem título',
+        confirmLabel: 'Salvar nome',
+      });
+      if (typeof title !== 'string' || !title || generation !== routeGeneration) return;
       item.title = title;
       item.updatedAt = new Date().toISOString();
-      try { await saveDocument(item); }
-      catch { storeRecovery(item); toast('Não foi possível salvar o novo nome. Ele foi mantido para recuperação.', 'error'); }
-      await drawLibrary();
+      try {
+        await saveDocument(item);
+        clearRecovery(item.id);
+      } catch {
+        const recovered = storeRecovery(item);
+        toast(
+          recovered
+            ? 'Não foi possível salvar o novo nome. Uma cópia local foi preservada para recuperação.'
+            : 'Não foi possível salvar nem preservar o novo nome neste navegador.',
+          'error',
+        );
+      }
+      if (generation !== routeGeneration) return;
+      await drawLibrary(generation);
+      focusDocumentAction(id, 'rename');
     },
     onDelete: async (id) => {
       const item = await getDocument(id);
-      if (!item) return;
-      const confirmed = await showDialog({ title: 'Excluir documento?', message: `“${item.title || 'Documento sem título'}” será removido deste navegador. Esta ação não pode ser desfeita.`, confirmLabel: 'Excluir livro', danger: true });
-      if (!confirmed) return;
+      if (!item || generation !== routeGeneration) return;
+      const confirmed = await showDialog({
+        title: 'Excluir documento?',
+        message: `“${item.title || 'Documento sem título'}” será removido deste navegador. Esta ação não pode ser desfeita.`,
+        confirmLabel: 'Excluir livro',
+        danger: true,
+      });
+      if (!confirmed || generation !== routeGeneration) return;
+      let deleted = false;
       try {
         await deleteDocument(id);
+        deleted = true;
         toast('Livro removido da estante.');
       } catch {
-        toast('Não foi possível excluir este documento agora.', 'error');
+        toast('Não foi possível confirmar a exclusão. O documento pode continuar salvo neste navegador.', 'error');
       }
-      await drawLibrary();
+      if (generation !== routeGeneration) return;
+      await drawLibrary(generation);
+      focusDocumentAction(deleted ? '' : id, deleted ? 'open' : 'delete');
     },
   });
   document.title = 'Meus documentos — Livro';
+  if (focus) focusLibraryHeading(generation);
+}
+
+async function enterDocument(id, generation) {
+  if (controller && currentId === id) return;
+  const previousController = controller;
+  if (previousController) {
+    const canClose = await previousController.close();
+    if (generation !== routeGeneration) return;
+    if (!canClose) {
+      if (currentId) window.history.replaceState(null, '', `#doc=${encodeURIComponent(currentId)}`);
+      return;
+    }
+    previousController.destroy();
+    if (controller === previousController) controller = null;
+    currentId = null;
+  }
+
+  const documentRecord = await getDocument(id);
+  if (generation !== routeGeneration) return;
+  if (!documentRecord) {
+    toast('Não encontramos esse documento neste navegador.', 'error');
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    currentId = null;
+    await drawLibrary(generation, { focus: Boolean(previousController) });
+    return;
+  }
+
+  currentId = id;
+  document.title = `${documentRecord.title || 'Documento sem título'} — Livro`;
+  controller = mountBookEditor(app, documentRecord, {
+    onBack: () => { window.location.hash = ''; },
+    onDocumentUpdated: (updated) => {
+      document.title = `${updated.title?.trim() || 'Documento sem título'} — Livro`;
+    },
+  });
 }
 
 async function route() {
   const generation = ++routeGeneration;
   const id = documentIdFromHash();
   if (id) {
-    await enterDocument(id);
-  } else {
-    if (controller) {
-      const canClose = await controller.close();
-      if (!canClose) {
-        window.history.replaceState(null, '', `#doc=${encodeURIComponent(currentId)}`);
-        return;
-      }
-      controller.destroy();
-      controller = null;
-      currentId = null;
-    }
-    if (generation === routeGeneration) await drawLibrary();
+    await enterDocument(id, generation);
+    return;
   }
+
+  const previousController = controller;
+  if (previousController) {
+    const canClose = await previousController.close();
+    if (generation !== routeGeneration) return;
+    if (!canClose) {
+      if (currentId) window.history.replaceState(null, '', `#doc=${encodeURIComponent(currentId)}`);
+      return;
+    }
+    previousController.destroy();
+    if (controller === previousController) controller = null;
+    currentId = null;
+  }
+  await drawLibrary(generation, { focus: Boolean(previousController) });
 }
 
 window.addEventListener('hashchange', () => { void route(); });

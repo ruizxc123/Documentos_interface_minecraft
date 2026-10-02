@@ -15,7 +15,7 @@ Aplicação web estática para escrever e organizar ideias em uma interface de l
 
 - Navegador moderno com suporte a módulos JavaScript, IndexedDB e armazenamento local.
 - Python 3 ou outro servidor HTTP estático para desenvolvimento local.
-- Node.js 22+ para executar os testes e verificações.
+- Node.js 22.13+ para executar testes e verificações.
 
 ## Início rápido
 
@@ -30,11 +30,13 @@ Acesse <http://localhost:3000>. O projeto precisa ser servido por HTTP; abrir `i
 ## Testes
 
 ```bash
+npm ci
 npm test
+npm run lint
 npm run check
 ```
 
-Os testes usam o executor nativo do Node.js, sem bibliotecas de terceiros. O GitHub Actions executa as mesmas verificações em pushes e pull requests para `main`.
+Os testes usam o executor nativo do Node.js. O ESLint é uma dependência apenas de desenvolvimento; a aplicação não precisa de bibliotecas de terceiros em produção. O GitHub Actions executa lint, testes e verificação sintática em pushes e pull requests para `main`.
 
 ## Estrutura
 
@@ -46,10 +48,12 @@ Os testes usam o executor nativo do Node.js, sem bibliotecas de terceiros. O Git
 │   └── fonts/               # Fonte local e licença
 ├── docs/
 │   └── architecture.md      # Arquitetura, escopo e decisões técnicas
+├── eslint.config.js          # Regras estáticas de JavaScript
 ├── src/                     # Código da aplicação
 ├── tests/                   # Testes de paginação e persistência
 ├── index.html               # Ponto de entrada
 ├── package.json             # Scripts e requisitos do Node.js
+├── package-lock.json         # Dependências de desenvolvimento fixadas
 ├── SECURITY.md              # Modelo de segurança e reporte
 └── THIRD_PARTY_NOTICES.md   # Atribuições de terceiros
 ```

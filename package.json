@@ -6,9 +6,14 @@
   "description": "Aplicação web estática para escrever e organizar documentos em uma interface de livro.",
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/main.js && node --check src/library.js && node --check src/book-editor.js && node --check src/pagination.js && node --check src/storage.js && node --check tests/pagination.test.mjs && node --check tests/storage.test.mjs"
+    "check": "node --check eslint.config.js && node --check src/main.js && node --check src/library.js && node --check src/book-editor.js && node --check src/pagination.js && node --check src/storage.js && node --check tests/pagination.test.mjs && node --check tests/storage.test.mjs",
+    "lint": "eslint src/*.js tests/*.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.11.0"
   }
 }

@@ -216,7 +216,9 @@ export async function saveDocument(document) {
       return { document: saved, storage: 'local' };
     }
     storeRecovery(saved);
-    throw new Error(indexedError?.message || 'Não foi possível salvar o documento neste navegador.');
+    const error = new Error(indexedError?.message || 'Não foi possível salvar o documento neste navegador.');
+    if (indexedError) error.cause = indexedError;
+    throw error;
   }
 }
 
@@ -238,8 +240,12 @@ export async function deleteDocument(id) {
   }
 
   const remaining = readFallbackDocuments().filter((doc) => doc.id !== id);
-  safeWrite(FALLBACK_KEY, remaining);
+  const fallbackCleaned = safeWrite(FALLBACK_KEY, remaining);
   clearRecovery(id);
+  if (!indexedError && fallbackCleaned) clearTombstone(id);
   // If the primary delete failed, only a durable tombstone can prevent the stale IDB row reappearing.
   if (indexedError && !tombstoneStored) throw indexedError;
+  if (!indexedError && !fallbackCleaned && !tombstoneStored) {
+    throw new Error('Não foi possível confirmar a exclusão em todas as cópias locais.');
+  }
 }

@@ -2,6 +2,7 @@ import { pageIndexAt, paginateText } from './pagination.js';
 import { clearRecovery, saveDocument, storeRecovery } from './storage.js';
 
 const MAX_UNDO_STEPS = 120;
+const MAX_HISTORY_CHARACTERS = 1_000_000;
 const SAVE_DELAY = 720;
 const RECOVERY_DELAY = 180;
 const MIN_ZOOM = 0.8;
@@ -48,6 +49,7 @@ function nextBoundary(text, offset) {
     const next = [...new Intl.Segmenter('pt-BR', { granularity: 'grapheme' }).segment(text.slice(bounded))][0];
     return next ? bounded + next.segment.length : text.length;
   }
+  if (bounded >= text.length) return text.length;
   const code = text.codePointAt(bounded);
   return bounded + (code && code > 0xffff ? 2 : 1);
 }
@@ -66,14 +68,14 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
           <input class="title-input" type="text" maxlength="120" aria-label="Título do documento" value="" />
         </div>
         <div class="editor-actions">
-          <span class="save-status" data-state="saved" role="status" aria-live="polite">Salvo</span>
+          <span class="save-status" data-state="saved" aria-hidden="true">Salvo</span>
           <button class="save-button" type="button" data-action="save">Salvar</button>
         </div>
       </header>
       <main class="editor-main">
         <div class="editor-toolbar">
           <div class="document-kind"><span class="document-kind-icon" aria-hidden="true">✎</span><span>ESCREVENDO NO LIVRO</span></div>
-          <div class="zoom-controls" aria-label="Zoom do livro">
+          <div class="zoom-controls" role="group" aria-label="Ajustar zoom do livro">
             <button type="button" data-action="zoom-out" aria-label="Diminuir zoom">−</button>
             <span class="zoom-value" aria-live="polite">100%</span>
             <button type="button" data-action="zoom-in" aria-label="Aumentar zoom">+</button>
@@ -81,15 +83,15 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
         </div>
         <div class="book-stage" id="book-stage">
           <div class="book-viewport" id="book-viewport" aria-label="Livro aberto">
-            <div class="book-track" id="book-track" contenteditable="plaintext-only" role="textbox" aria-label="Página do livro. Clique e comece a escrever." aria-multiline="true" spellcheck="true" autocapitalize="sentences"></div>
+            <div class="book-track" id="book-track" contenteditable="plaintext-only" role="textbox" tabindex="0" aria-label="Texto do documento, página atual" aria-describedby="editor-instructions" aria-multiline="true" spellcheck="true" autocapitalize="sentences"></div>
           </div>
         </div>
         <nav class="page-navigation" aria-label="Navegação entre páginas">
           <button class="page-nav-button" type="button" data-action="previous"><span class="nav-chevron" aria-hidden="true">‹</span> Página anterior</button>
-          <span class="page-count" aria-live="polite">Página 1 de 1</span>
+          <span class="page-count" aria-live="polite" aria-atomic="true">Página 1 de 1</span>
           <button class="page-nav-button" type="button" data-action="next">Próxima página <span class="nav-chevron" aria-hidden="true">›</span></button>
         </nav>
-        <p class="editor-footnote">Seu texto fica salvo neste navegador <span aria-hidden="true">·</span> Ctrl/Cmd + Z para desfazer</p>
+        <p class="editor-footnote" id="editor-instructions">O texto fica salvo neste navegador. Ctrl/Cmd + Z desfaz; Ctrl/Cmd + Shift + Z refaz.</p>
       </main>
     </div>`;
 
@@ -102,6 +104,8 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
   const zoomValue = root.querySelector('.zoom-value');
   const previousButton = root.querySelector('[data-action="previous"]');
   const nextButton = root.querySelector('[data-action="next"]');
+  const zoomOutButton = root.querySelector('[data-action="zoom-out"]');
+  const zoomInButton = root.querySelector('[data-action="zoom-in"]');
   const undoStack = [];
   const redoStack = [];
   let pages = [];
@@ -327,18 +331,25 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
     editRevision += 1;
     setStatus('unsaved', 'Alterações não salvas');
     callbacks.onDocumentUpdated?.({ ...documentRecord });
-    clearTimeout(recoveryTimer);
+    window.clearTimeout(recoveryTimer);
     recoveryTimer = window.setTimeout(() => {
       if (!storeRecovery(documentRecord)) setStatus('error', 'Cópia de segurança indisponível');
     }, RECOVERY_DELAY);
-    clearTimeout(saveTimer);
+    window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(() => { void saveNow(); }, SAVE_DELAY);
+  }
+
+  function pushHistory(stack, entry) {
+    stack.push(entry);
+    let retainedCharacters = stack.reduce((total, item) => total + item.content.length, 0);
+    while (stack.length > MAX_UNDO_STEPS || (stack.length > 1 && retainedCharacters > MAX_HISTORY_CHARACTERS)) {
+      retainedCharacters -= stack.shift().content.length;
+    }
   }
 
   function remember(previous) {
     const selection = captureSelection() || { anchor: previous.length, focus: previous.length };
-    undoStack.push({ content: previous, ...selection });
-    if (undoStack.length > MAX_UNDO_STEPS) undoStack.shift();
+    pushHistory(undoStack, { content: previous, ...selection });
     redoStack.length = 0;
   }
 
@@ -373,7 +384,7 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
     const current = documentRecord.content;
     const currentSelection = captureSelection() || { anchor: current.length, focus: current.length };
     const previous = undoStack.pop();
-    redoStack.push({ content: current, ...currentSelection });
+    pushHistory(redoStack, { content: current, ...currentSelection });
     documentRecord.content = previous.content;
     renderPages({ anchor: previous.anchor, focus: previous.focus });
     notifyChanged();
@@ -384,7 +395,7 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
     const current = documentRecord.content;
     const currentSelection = captureSelection() || { anchor: current.length, focus: current.length };
     const next = redoStack.pop();
-    undoStack.push({ content: current, ...currentSelection });
+    pushHistory(undoStack, { content: current, ...currentSelection });
     documentRecord.content = next.content;
     renderPages({ anchor: next.anchor, focus: next.focus });
     notifyChanged();
@@ -414,6 +425,19 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
       const text = event.dataTransfer?.getData('text/plain') || event.data || '';
       event.preventDefault();
       insertAtSelection(text);
+      return;
+    }
+    if (inputType.startsWith('insert')) {
+      if (event.data == null) {
+        event.preventDefault();
+        return;
+      }
+      event.preventDefault();
+      insertAtSelection(event.data);
+      return;
+    }
+    if (inputType.startsWith('format')) {
+      event.preventDefault();
       return;
     }
     if (inputType === 'deleteContentBackward' || inputType === 'deleteWordBackward' || inputType === 'deleteSoftLineBackward') {
@@ -449,8 +473,8 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
     if (savePromise) {
       return savePromise.then((saved) => saved && isDirty ? saveNow() : saved);
     }
-    clearTimeout(saveTimer);
-    clearTimeout(retryTimer);
+    window.clearTimeout(saveTimer);
+    window.clearTimeout(retryTimer);
     if (!isDirty && lastSavedAt) {
       setStatus('saved', `Salvo ${formatTimestamp(lastSavedAt)}`);
       return true;
@@ -475,8 +499,11 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
         }
         return true;
       } catch {
-        setStatus('error', 'Não foi possível salvar. Tentando novamente...');
-        storeRecovery(documentRecord);
+        const recovered = storeRecovery(documentRecord);
+        setStatus(
+          'error',
+          recovered ? 'Não foi possível salvar. Rascunho de recuperação preservado.' : 'Falha ao salvar e a cópia de recuperação não está disponível.',
+        );
         retryTimer = window.setTimeout(() => { void saveNow(); }, 4000);
         return false;
       }
@@ -547,12 +574,11 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
   function onCut(event) {
     const selection = captureSelection();
     if (selection.anchor === selection.focus) return;
+    if (!event.clipboardData) return;
     const start = Math.min(selection.anchor, selection.focus);
     const end = Math.max(selection.anchor, selection.focus);
-    if (event.clipboardData) {
-      event.preventDefault();
-      event.clipboardData.setData('text/plain', documentRecord.content.slice(start, end));
-    }
+    event.preventDefault();
+    event.clipboardData.setData('text/plain', documentRecord.content.slice(start, end));
     updateContent(documentRecord.content.slice(0, start) + documentRecord.content.slice(end), { anchor: start, focus: start });
   }
 
@@ -569,6 +595,8 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
   function updateZoom(delta) {
     zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round((zoom + delta) * 10) / 10));
     zoomValue.textContent = `${Math.round(zoom * 100)}%`;
+    zoomOutButton.disabled = zoom <= MIN_ZOOM;
+    zoomInButton.disabled = zoom >= MAX_ZOOM;
     const activeSelection = window.getSelection();
     const hasEditorSelection = activeSelection?.rangeCount && pageContainerFor(activeSelection.anchorNode) && pageContainerFor(activeSelection.focusNode);
     const selection = hasEditorSelection ? captureSelection() : null;
@@ -605,13 +633,16 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
     const step = window.matchMedia('(max-width: 760px)').matches ? 1 : 2;
     setCurrentPage(Math.min(pages.length - 1, Math.floor(currentPage / step) * step + step));
   });
-  root.querySelector('[data-action="zoom-out"]').addEventListener('click', () => updateZoom(-ZOOM_STEP));
-  root.querySelector('[data-action="zoom-in"]').addEventListener('click', () => updateZoom(ZOOM_STEP));
+  zoomOutButton.addEventListener('click', () => updateZoom(-ZOOM_STEP));
+  zoomInButton.addEventListener('click', () => updateZoom(ZOOM_STEP));
 
-  const resizeObserver = new ResizeObserver(scheduleReflow);
-  resizeObserver.observe(stage);
+  const resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(scheduleReflow) : null;
+  resizeObserver?.observe(stage);
   const onViewportChange = () => scheduleReflow();
-  window.matchMedia('(max-width: 760px)').addEventListener?.('change', onViewportChange);
+  const mobileQuery = window.matchMedia('(max-width: 760px)');
+  if (mobileQuery.addEventListener) mobileQuery.addEventListener('change', onViewportChange);
+  else mobileQuery.addListener?.(onViewportChange);
+  if (!resizeObserver) window.addEventListener('resize', onViewportChange);
 
   function recoverBeforeExit() {
     if (isDirty) {
@@ -630,6 +661,8 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
 
   applyBookSize();
   renderPages(null, false);
+  track.focus({ preventScroll: true });
+  restoreSelection(documentRecord.content.length);
   if (document.fonts?.ready) document.fonts.ready.then(() => { if (!destroyed) scheduleReflow(); });
   lastSavedAt = documentRecord.updatedAt || null;
   isDirty = false;
@@ -643,16 +676,20 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
       if (!isDirty) return true;
       const saved = await saveNow();
       if (saved) return true;
-      storeRecovery(documentRecord);
-      return window.confirm('O salvamento ainda não terminou. Uma cópia de recuperação foi mantida neste navegador. Deseja voltar mesmo assim?');
+      const recovered = storeRecovery(documentRecord);
+      return window.confirm(
+        recovered
+          ? 'O salvamento ainda não terminou, mas uma cópia de recuperação foi preservada neste navegador. Deseja voltar mesmo assim?'
+          : 'O salvamento falhou e não foi possível preservar uma cópia de recuperação. Se voltar agora, as alterações podem ser perdidas. Deseja continuar?',
+      );
     },
     destroy() {
       if (destroyed) return;
       destroyed = true;
-      clearTimeout(saveTimer);
-      clearTimeout(recoveryTimer);
-      clearTimeout(retryTimer);
-      resizeObserver.disconnect();
+      window.clearTimeout(saveTimer);
+      window.clearTimeout(recoveryTimer);
+      window.clearTimeout(retryTimer);
+      resizeObserver?.disconnect();
       document.removeEventListener('selectionchange', onSelectionChange);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('pagehide', recoverBeforeExit);
@@ -661,7 +698,9 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
       track.removeEventListener('input', syncNativeInput);
       track.removeEventListener('paste', onPaste);
       track.removeEventListener('drop', onDrop);
-      window.matchMedia('(max-width: 760px)').removeEventListener?.('change', onViewportChange);
+      if (mobileQuery.removeEventListener) mobileQuery.removeEventListener('change', onViewportChange);
+      else mobileQuery.removeListener?.(onViewportChange);
+      if (!resizeObserver) window.removeEventListener('resize', onViewportChange);
     },
   };
 }

@@ -22,6 +22,7 @@ Livro é uma aplicação web estática, em português, para organizar documentos
 | `src/pagination.js` | Cálculo de linhas e páginas a partir da string canônica. |
 | `src/storage.js` | IndexedDB, fallback local, recuperação e validação dos registros. |
 | `src/styles.css` | Identidade visual, layout responsivo, estados e movimento reduzido. |
+| `eslint.config.js` | Regras recomendadas para detectar erros JavaScript antes da publicação. |
 | `assets/` | Ícone da aplicação, fonte local e licença da fonte. |
 | `tests/` | Testes automatizados de paginação e persistência. |
 
@@ -61,4 +62,4 @@ Os dados não são sincronizados, criptografados nem copiados para fora do naveg
 
 Sirva a raiz do repositório por HTTP. Para desenvolvimento local, use `python3 -m http.server 3000` e abra `http://localhost:3000`.
 
-Execute `npm test` para a suíte automatizada e `npm run check` para verificar a sintaxe JavaScript. O workflow em `.github/workflows/quality.yml` executa ambos em pushes e pull requests para `main`.
+Execute `npm ci`, `npm run lint`, `npm test` e `npm run check` para instalar dependências fixadas, verificar qualidade estática, executar a suíte automatizada e conferir sintaxe. O workflow em `.github/workflows/quality.yml` executa os mesmos controles em pushes e pull requests para `main`.
