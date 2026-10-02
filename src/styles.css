@@ -1,6 +1,6 @@
 @font-face {
   font-family: "Minebook";
-  src: url("/fonts/Minecraft.otf") format("opentype");
+  src: url("/assets/fonts/Minecraft.otf") format("opentype");
   font-style: normal;
   font-weight: 400;
   font-display: swap;

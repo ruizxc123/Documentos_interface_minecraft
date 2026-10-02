@@ -2,8 +2,8 @@
 
 ## Minecraft-Font — Idrees Hassan
 
-A fonte `fonts/Minecraft.otf` foi criada por Idrees Hassan e distribuída sob a SIL Open Font License, versão 1.1. Ela é um projeto de fãs independente, não afiliado à Minecraft ou Mojang; o próprio projeto informa que não inclui arquivos de fonte nem ativos originais do jogo. A fonte contém 195 glifos, incluindo a faixa Latin-1 usada pelos acentos portugueses.
+A fonte `assets/fonts/Minecraft.otf` foi criada por Idrees Hassan e distribuída sob a SIL Open Font License, versão 1.1. É um projeto de fãs independente, não afiliado à Minecraft ou Mojang. A fonte não inclui arquivos nem ativos originais do jogo e contém glifos Latin-1 usados para acentuação em português.
 
-- Repositório e descrição: https://github.com/IdreesInc/Minecraft-Font
-- Licença integral incluída em `fonts/LICENSE-Minecraft.txt`.
-- Versão baixada: release `v1.0`.
+- Repositório e descrição: <https://github.com/IdreesInc/Minecraft-Font>
+- Licença integral: `assets/fonts/LICENSE-Minecraft.txt`.
+- Versão incluída: release `v1.0`.
