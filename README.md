@@ -1,6 +1,6 @@
 # Livro — caderno digital de documentos
 
-Aplicação web estática para escrever e organizar ideias em uma interface de livro. Funciona sem backend, conta de usuário ou dependências de produção.
+A ideia é transformar a experiência de um documento do Google em uma interface inspirada nos livros do Minecraft. Em vez de escrever em um editor tradicional, você escreve diretamente nas páginas do livro, podendo criar, salvar e organizar seus documentos como livros digitais.Aplicação web estática para escrever e organizar ideias em uma interface de livro. Funciona sem backend, conta de usuário ou dependências de produção.
 
 ## Recursos
 
