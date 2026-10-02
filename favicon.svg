@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Livro aberto">
+  <rect width="64" height="64" rx="16" fill="#315b46"/>
+  <path d="M12 17.5c7.1-2.5 13.8-1.9 20 2.2v29c-6.3-4.1-12.9-4.7-20-2.2v-29Z" fill="#f4edda" stroke="#e8d9b5" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M52 17.5c-7.1-2.5-13.8-1.9-20 2.2v29c6.3-4.1 12.9-4.7 20-2.2v-29Z" fill="#fff8e8" stroke="#e8d9b5" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M17 26h9M17 32h9M17 38h9M38 26h9M38 32h9M38 38h9" stroke="#8e9d7c" stroke-width="2" stroke-linecap="square"/>
+  <path d="M32 20v28" stroke="#bc955b" stroke-width="2"/>
+</svg>
