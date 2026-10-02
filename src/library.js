@@ -54,7 +54,7 @@ export function renderLibrary(root, documents, callbacks) {
     <div class="library-shell">
       <header class="library-topbar">
         <a class="brand" href="#" aria-label="Livro — início">
-          <img src="/favicon.svg" alt="" width="36" height="36" />
+          <img src="/assets/favicon.svg" alt="" width="36" height="36" />
           <span>livro<span class="brand-period">.</span></span>
         </a>
         <div class="topbar-note"><span class="topbar-spark" aria-hidden="true">✦</span> seu espaço de ideias</div>
