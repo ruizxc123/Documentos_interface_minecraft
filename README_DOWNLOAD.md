@@ -1,23 +1,11 @@
-# Livro — editor de documentos em forma de livro
+# Execução local
 
-Projeto estático, sem dependências de build ou backend. Os documentos são guardados no armazenamento local do navegador.
+As instruções oficiais de requisitos, execução, testes, armazenamento e segurança estão no [README principal](README.md).
 
-## Executar localmente
+Resumo rápido:
 
-Com Python 3 instalado, na pasta do projeto:
-
-```sh
+```bash
 python3 -m http.server 3000
 ```
 
-Abra `http://localhost:3000` no navegador.
-
-## Testes
-
-Com Node.js instalado, execute:
-
-```sh
-node --experimental-default-type=module --test tests/pagination.test.mjs tests/storage.test.mjs
-```
-
-A fonte e sua licença estão em `fonts/` e a atribuição em `THIRD_PARTY_NOTICES.md`.
+Depois, abra <http://localhost:3000>. Para testar e verificar o código, use `npm test` e `npm run check`.

@@ -4,8 +4,31 @@ const STORE_NAME = 'documents';
 const FALLBACK_KEY = 'livro:documents:v1';
 const RECOVERY_PREFIX = 'livro:recovery:';
 const TOMBSTONE_PREFIX = 'livro:deleted:';
+const VALID_ID = /^[A-Za-z0-9_-]{1,128}$/u;
+const EPOCH = new Date(0).toISOString();
 
 let databasePromise;
+
+function normalizeTimestamp(value, fallback) {
+  if (typeof value !== 'string') return fallback;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : fallback;
+}
+
+function normalizeDocument(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (typeof value.id !== 'string' || !VALID_ID.test(value.id)) return null;
+  if (value.title !== undefined && typeof value.title !== 'string') return null;
+  if (value.content !== undefined && typeof value.content !== 'string') return null;
+  const createdAt = normalizeTimestamp(value.createdAt, EPOCH);
+  return {
+    id: value.id,
+    title: (value.title || 'Documento sem título').slice(0, 120),
+    content: value.content || '',
+    createdAt,
+    updatedAt: normalizeTimestamp(value.updatedAt, createdAt),
+  };
+}
 
 function safeRead(key, fallback = null) {
   try {
@@ -69,7 +92,7 @@ async function readOneIndexed(id) {
 
 function readFallbackDocuments() {
   const value = safeRead(FALLBACK_KEY, []);
-  return Array.isArray(value) ? value : [];
+  return Array.isArray(value) ? value.map(normalizeDocument).filter(Boolean) : [];
 }
 
 function readRecoveryDocuments() {
@@ -78,8 +101,8 @@ function readRecoveryDocuments() {
     for (let index = 0; index < localStorage.length; index += 1) {
       const key = localStorage.key(index);
       if (!key || !key.startsWith(RECOVERY_PREFIX)) continue;
-      const item = safeRead(key);
-      if (item?.id) recovered.push(item);
+      const item = normalizeDocument(safeRead(key));
+      if (item) recovered.push(item);
     }
   } catch {
     // A private browsing mode may block access; IndexedDB continues to work when available.
@@ -115,15 +138,16 @@ function clearTombstone(id) {
 function mergeByFreshness(...groups) {
   const byId = new Map();
   for (const group of groups) {
-    for (const doc of group) {
-      if (!doc?.id) continue;
+    for (const candidate of group) {
+      const doc = normalizeDocument(candidate);
+      if (!doc) continue;
       const previous = byId.get(doc.id);
-      if (!previous || Date.parse(doc.updatedAt || 0) >= Date.parse(previous.updatedAt || 0)) {
+      if (!previous || Date.parse(doc.updatedAt) >= Date.parse(previous.updatedAt)) {
         byId.set(doc.id, doc);
       }
     }
   }
-  return [...byId.values()].sort((a, b) => Date.parse(b.updatedAt || 0) - Date.parse(a.updatedAt || 0));
+  return [...byId.values()].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
 }
 
 export async function listDocuments() {
@@ -138,12 +162,12 @@ export async function listDocuments() {
 }
 
 export async function getDocument(id) {
-  if (isTombstoned(id)) return null;
+  if (typeof id !== 'string' || !VALID_ID.test(id) || isTombstoned(id)) return null;
   try {
     const indexed = await readOneIndexed(id);
     const recovery = safeRead(`${RECOVERY_PREFIX}${id}`);
     const fallback = readFallbackDocuments().find((doc) => doc.id === id);
-    return mergeByFreshness([indexed].filter(Boolean), [fallback].filter(Boolean), [recovery].filter(Boolean))[0] || null;
+    return mergeByFreshness([indexed].filter(Boolean), [recovery].filter(Boolean), [fallback].filter(Boolean))[0] || null;
   } catch {
     return mergeByFreshness(
       readFallbackDocuments().filter((doc) => doc.id === id),
@@ -153,10 +177,12 @@ export async function getDocument(id) {
 }
 
 export function storeRecovery(document) {
-  return safeWrite(`${RECOVERY_PREFIX}${document.id}`, document);
+  const normalized = normalizeDocument(document);
+  return normalized ? safeWrite(`${RECOVERY_PREFIX}${normalized.id}`, normalized) : false;
 }
 
 export function clearRecovery(id) {
+  if (typeof id !== 'string' || !VALID_ID.test(id)) return;
   try {
     localStorage.removeItem(`${RECOVERY_PREFIX}${id}`);
   } catch {
@@ -165,7 +191,13 @@ export function clearRecovery(id) {
 }
 
 export async function saveDocument(document) {
-  const saved = { ...document, updatedAt: document.updatedAt || new Date().toISOString() };
+  const normalized = normalizeDocument(document);
+  if (!normalized) throw new TypeError('Documento inválido: confira o identificador, o título e o conteúdo.');
+  const saved = {
+    ...normalized,
+    createdAt: normalizeTimestamp(document.createdAt, new Date().toISOString()),
+    updatedAt: normalizeTimestamp(document.updatedAt, new Date().toISOString()),
+  };
   try {
     const db = await openDatabase();
     const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -189,6 +221,7 @@ export async function saveDocument(document) {
 }
 
 export async function deleteDocument(id) {
+  if (typeof id !== 'string' || !VALID_ID.test(id)) throw new TypeError('Identificador de documento inválido.');
   const tombstoneStored = markDeleted(id);
   let indexedError;
   try {
