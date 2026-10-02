@@ -81,7 +81,7 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
         </div>
         <div class="book-stage" id="book-stage">
           <div class="book-viewport" id="book-viewport" aria-label="Livro aberto">
-            <div class="book-track" id="book-track" contenteditable="true" role="textbox" aria-label="Página do livro. Clique e comece a escrever." aria-multiline="true" spellcheck="true" autocapitalize="sentences"></div>
+            <div class="book-track" id="book-track" contenteditable="plaintext-only" role="textbox" aria-label="Página do livro. Clique e comece a escrever." aria-multiline="true" spellcheck="true" autocapitalize="sentences"></div>
           </div>
         </div>
         <nav class="page-navigation" aria-label="Navegação entre páginas">
@@ -525,9 +525,14 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
 
   function onPaste(event) {
     const text = event.clipboardData?.getData('text/plain');
-    if (text == null) return;
     event.preventDefault();
-    insertAtSelection(text);
+    if (text != null) insertAtSelection(text);
+  }
+
+  function onDrop(event) {
+    event.preventDefault();
+    const text = event.dataTransfer?.getData('text/plain');
+    if (text != null) insertAtSelection(text);
   }
 
   function onCopy(event) {
@@ -574,6 +579,7 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
   track.addEventListener('input', syncNativeInput);
   track.addEventListener('keydown', onKeyDown);
   track.addEventListener('paste', onPaste);
+  track.addEventListener('drop', onDrop);
   track.addEventListener('copy', onCopy);
   track.addEventListener('cut', onCut);
   track.addEventListener('compositionstart', () => { compositionActive = true; });
@@ -653,6 +659,8 @@ export function mountBookEditor(root, initialDocument, callbacks = {}) {
       titleInput.removeEventListener('input', onTitleInput);
       track.removeEventListener('beforeinput', handleBeforeInput);
       track.removeEventListener('input', syncNativeInput);
+      track.removeEventListener('paste', onPaste);
+      track.removeEventListener('drop', onDrop);
       window.matchMedia('(max-width: 760px)').removeEventListener?.('change', onViewportChange);
     },
   };

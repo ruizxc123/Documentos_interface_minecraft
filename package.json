@@ -1,0 +1,14 @@
+{
+  "name": "livro-caderno-digital",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Aplicação web estática para escrever e organizar documentos em uma interface de livro.",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/main.js && node --check src/library.js && node --check src/book-editor.js && node --check src/pagination.js && node --check src/storage.js && node --check tests/pagination.test.mjs && node --check tests/storage.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

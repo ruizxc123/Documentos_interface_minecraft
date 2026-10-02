@@ -43,3 +43,17 @@ test('usa a cópia de recuperação mais recente e a remove depois da gravação
   clearRecovery(recovered.id);
   assert.equal((await getDocument('draft-1')).content, recovered.content);
 });
+
+test('ignora registros malformados e rejeita identificadores fora do formato aceito', async () => {
+  localStorage.clear();
+  localStorage.setItem('livro:documents:v1', JSON.stringify([
+    record('doc-valid', 'Documento válido', 'conteúdo', '2026-10-01T20:00:00.000Z'),
+    record('<script>alert(1)</script>', 'ID inválido', 'conteúdo', '2026-10-01T20:01:00.000Z'),
+    { id: 'doc-object', title: {}, content: 'conteúdo' },
+    null,
+  ]));
+
+  assert.deepEqual((await listDocuments()).map((item) => item.id), ['doc-valid']);
+  assert.equal(await getDocument('<script>alert(1)</script>'), null);
+  await assert.rejects(saveDocument(record('<script>', 'Inválido', '', '2026-10-01T20:00:00.000Z')), TypeError);
+});
